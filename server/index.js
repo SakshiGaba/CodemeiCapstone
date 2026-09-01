@@ -14,6 +14,46 @@ db.run(`CREATE TABLE IF NOT EXISTS items (
   name TEXT NOT NULL
 )`);
 
+function parsePositiveInt(value) {
+  const n = Number.parseInt(String(value), 10);
+  if (!Number.isInteger(n) || n <= 0) return null;
+  return n;
+}
+
+function getTrimmedNonEmptyString(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed;
+}
+
+function dbRun(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function (err) {
+      if (err) return reject(err);
+      resolve({ lastID: this.lastID, changes: this.changes });
+    });
+  });
+}
+
+function dbGet(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.get(sql, params, (err, row) => {
+      if (err) return reject(err);
+      resolve(row);
+    });
+  });
+}
+
+function dbAll(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => {
+      if (err) return reject(err);
+      resolve(rows);
+    });
+  });
+}
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -37,6 +77,31 @@ app.post('/api/items', (req, res) => {
     if (err) return res.status(500).json({ error: err.message });
     res.status(201).json({ id: this.lastID, name: name.trim() });
   });
+});
+
+// Edit an item
+app.put('/api/items/:id', async (req, res) => {
+  const id = parsePositiveInt(req.params.id);
+  if (!id) {
+    return res.status(400).json({ error: 'Invalid id' });
+  }
+
+  const name = getTrimmedNonEmptyString(req.body?.name);
+  if (!name) {
+    return res.status(400).json({ error: 'Name is required' });
+  }
+
+  try {
+    const existing = await dbGet('SELECT id FROM items WHERE id = ?', [id]);
+    if (!existing) {
+      return res.status(404).json({ error: 'Item not found' });
+    }
+
+    await dbRun('UPDATE items SET name = ? WHERE id = ?', [name, id]);
+    return res.json({ id, name });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // Delete an item
