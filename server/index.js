@@ -39,6 +39,29 @@ app.post('/api/items', (req, res) => {
   });
 });
 
+// Edit an existing item
+app.put('/api/items/:id', (req, res) => {
+  const rawId = req.params.id;
+  const id = Number.parseInt(rawId, 10);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ error: 'Invalid id' });
+  }
+
+  const { name } = req.body;
+  if (typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'Name is required' });
+  }
+
+  const trimmedName = name.trim();
+
+  db.run('UPDATE items SET name = ? WHERE id = ?', [trimmedName, id], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    if (this.changes === 0) return res.status(404).json({ error: 'Item not found' });
+    res.json({ id, name: trimmedName });
+  });
+});
+
 // Delete an item
 app.delete('/api/items/:id', (req, res) => {
   db.run('DELETE FROM items WHERE id = ?', [req.params.id], function (err) {
