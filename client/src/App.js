@@ -4,6 +4,8 @@ function App() {
   const [items, setItems] = useState([]);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState(null);
+  const [editingName, setEditingName] = useState('');
 
   const loadItems = () => {
     fetch('/api/items')
@@ -38,6 +40,29 @@ function App() {
     loadItems();
   };
 
+  const startEditing = (item) => {
+    setEditingId(item.id);
+    setEditingName(item.name);
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditingName('');
+  };
+
+  const saveItem = async (id) => {
+    if (!editingName.trim()) return;
+    const res = await fetch(`/api/items/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: editingName }),
+    });
+    if (res.ok) {
+      cancelEditing();
+      loadItems();
+    }
+  };
+
   return (
     <div className="container">
       <h1>Items</h1>
@@ -58,8 +83,23 @@ function App() {
         <ul className="item-list">
           {items.map((item) => (
             <li key={item.id}>
-              <span>{item.name}</span>
-              <button onClick={() => deleteItem(item.id)}>Delete</button>
+              {editingId === item.id ? (
+                <>
+                  <input
+                    value={editingName}
+                    onChange={(e) => setEditingName(e.target.value)}
+                    autoFocus
+                  />
+                  <button onClick={() => saveItem(item.id)}>Save</button>
+                  <button onClick={cancelEditing}>Cancel</button>
+                </>
+              ) : (
+                <>
+                  <span>{item.name}</span>
+                  <button onClick={() => startEditing(item)}>Edit</button>
+                  <button onClick={() => deleteItem(item.id)}>Delete</button>
+                </>
+              )}
             </li>
           ))}
         </ul>
