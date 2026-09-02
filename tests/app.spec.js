@@ -15,7 +15,7 @@ test('can add a new item', async ({ page }) => {
   await expect(page.locator('.item-list')).toContainText(uniqueName);
 });
 
-test('can delete an item', async ({ page }) => {
+test('deleting an item shows a confirmation dialog', async ({ page }) => {
   await page.goto('/');
   const uniqueName = `Delete Me ${Date.now()}`;
 
@@ -26,6 +26,43 @@ test('can delete an item', async ({ page }) => {
   const row = page.locator('li', { hasText: uniqueName });
   await row.locator('button:has-text("Delete")').click();
 
+  await expect(page.locator('.modal')).toBeVisible();
+  await expect(page.locator('.modal')).toContainText(uniqueName);
+});
+
+test('cancelling the confirmation dialog keeps the item', async ({ page }) => {
+  await page.goto('/');
+  const uniqueName = `Keep Me ${Date.now()}`;
+
+  await page.fill('input[placeholder="New item name"]', uniqueName);
+  await page.click('button:has-text("Add")');
+  await expect(page.locator('.item-list')).toContainText(uniqueName);
+
+  const row = page.locator('li', { hasText: uniqueName });
+  await row.locator('button:has-text("Delete")').click();
+  await expect(page.locator('.modal')).toBeVisible();
+
+  await page.locator('.modal').locator('button:has-text("Cancel")').click();
+
+  await expect(page.locator('.modal')).not.toBeVisible();
+  await expect(page.locator('.item-list')).toContainText(uniqueName);
+});
+
+test('confirming the dialog deletes the item', async ({ page }) => {
+  await page.goto('/');
+  const uniqueName = `Delete Me ${Date.now()}`;
+
+  await page.fill('input[placeholder="New item name"]', uniqueName);
+  await page.click('button:has-text("Add")');
+  await expect(page.locator('.item-list')).toContainText(uniqueName);
+
+  const row = page.locator('li', { hasText: uniqueName });
+  await row.locator('button:has-text("Delete")').click();
+  await expect(page.locator('.modal')).toBeVisible();
+
+  await page.locator('.modal').locator('button:has-text("Delete")').click();
+
+  await expect(page.locator('.modal')).not.toBeVisible();
   await expect(page.locator('.item-list')).not.toContainText(uniqueName);
 });
 
