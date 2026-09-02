@@ -39,6 +39,19 @@ app.post('/api/items', (req, res) => {
   });
 });
 
+// Update an item's name
+app.put('/api/items/:id', (req, res) => {
+  const { name } = req.body;
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: 'Name is required' });
+  }
+  db.run('UPDATE items SET name = ? WHERE id = ?', [name.trim(), req.params.id], function (err) {
+    if (err) return res.status(500).json({ error: err.message });
+    if (this.changes === 0) return res.status(404).json({ error: 'Item not found' });
+    res.json({ id: Number(req.params.id), name: name.trim() });
+  });
+});
+
 // Delete an item
 app.delete('/api/items/:id', (req, res) => {
   db.run('DELETE FROM items WHERE id = ?', [req.params.id], function (err) {
