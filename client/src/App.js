@@ -6,6 +6,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const loadItems = () => {
     fetch('/api/items')
@@ -35,8 +36,18 @@ function App() {
     }
   };
 
-  const deleteItem = async (id) => {
-    await fetch(`/api/items/${id}`, { method: 'DELETE' });
+  const requestDelete = (item) => {
+    setDeleteTarget(item);
+  };
+
+  const cancelDelete = () => {
+    setDeleteTarget(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    await fetch(`/api/items/${deleteTarget.id}`, { method: 'DELETE' });
+    setDeleteTarget(null);
     loadItems();
   };
 
@@ -97,12 +108,28 @@ function App() {
                 <>
                   <span>{item.name}</span>
                   <button onClick={() => startEditing(item)}>Edit</button>
-                  <button onClick={() => deleteItem(item.id)}>Delete</button>
+                  <button onClick={() => requestDelete(item)}>Delete</button>
                 </>
               )}
             </li>
           ))}
         </ul>
+      )}
+
+      {deleteTarget && (
+        <div className="modal-overlay" onClick={cancelDelete}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <p>
+              Delete <strong>{deleteTarget.name}</strong>? This cannot be undone.
+            </p>
+            <div className="modal-actions">
+              <button onClick={confirmDelete}>Delete</button>
+              <button className="secondary" onClick={cancelDelete}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
